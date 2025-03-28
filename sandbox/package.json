@@ -1,0 +1,20 @@
+{
+  "name": "websocket-package-sandbox",
+  "version": "1.0.0",
+  "description": "Sandbox environment for testing the websocket package",
+  "private": true,
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon src/index.ts",
+    "kill-port": "lsof -ti :${PORT:-8080} | xargs kill -9 || true",
+    "kill-port:win": "FOR /F \"tokens=5\" %P IN ('netstat -a -n -o ^| findstr :%PORT%') DO TaskKill /PID %P /F"
+  },
+  "dependencies": {
+    "websocket-gateway": "file:.."
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "nodemon": "^3.0.3"
+  }
+}

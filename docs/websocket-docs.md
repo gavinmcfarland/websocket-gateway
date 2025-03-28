@@ -12,8 +12,8 @@ The WebSocketClient class provides a reliable WebSocket connection with automati
 const client = new WebSocketClient(url: string, source: string);
 ```
 
--   `url`: The WebSocket server URL to connect to
--   `source`: A unique identifier for this client
+- `url`: The WebSocket server URL to connect to
+- `source`: A unique identifier for this client
 
 ### Methods
 
@@ -24,8 +24,8 @@ Sends a message to the server. Messages are automatically queued if the connecti
 ```typescript
 // Example: Send a chat message
 await client.send("chat-message", {
-    message: "Hello world!",
-    timestamp: Date.now(),
+  message: "Hello world!",
+  timestamp: Date.now(),
 });
 ```
 
@@ -36,9 +36,9 @@ Registers an event listener for incoming messages. If the callback returns a val
 ```typescript
 // Example: Listen for chat messages
 client.on("chat-message", async (data) => {
-    console.log(`Received message: ${data.message}`);
-    // Optionally return a value to send a response
-    return { status: "received" };
+  console.log(`Received message: ${data.message}`);
+  // Optionally return a value to send a response
+  return { status: "received" };
 });
 ```
 
@@ -56,7 +56,7 @@ The WebSocketServer class manages WebSocket connections from multiple clients, h
 const server = new WebSocketServer(port: number);
 ```
 
--   `port`: The port number to listen on
+- `port`: The port number to listen on
 
 ### Methods
 
@@ -67,7 +67,7 @@ Sends a message to a specific client identified by their source.
 ```typescript
 // Example: Send a private message to a specific client
 server.sendTo("client123", "private-message", {
-    message: "This is for you only",
+  message: "This is for you only",
 });
 ```
 
@@ -78,11 +78,11 @@ Broadcasts a message to all connected clients, optionally excluding the source c
 ```typescript
 // Example: Broadcast a message to all clients except sender
 server.broadcast(
-    "announcement",
-    {
-        message: "Server is restarting in 5 minutes",
-    },
-    "admin-client"
+  "announcement",
+  {
+    message: "Server is restarting in 5 minutes",
+  },
+  "admin-client"
 );
 ```
 
@@ -93,9 +93,9 @@ Registers an event listener for incoming messages.
 ```typescript
 // Example: Handle chat messages
 server.on("chat-message", ({ source, payload }) => {
-    console.log(`Message from ${source}: ${payload.message}`);
-    // Broadcast the message to all other clients
-    server.broadcast("chat-message", payload, source);
+  console.log(`Message from ${source}: ${payload.message}`);
+  // Broadcast the message to all other clients
+  server.broadcast("chat-message", payload, source);
 });
 ```
 
@@ -111,17 +111,17 @@ server.close();
 
 The server automatically manages client connections and includes:
 
--   Client tracking with unique source identifiers
--   Automatic removal of disconnected clients
--   Ping/pong mechanism to detect stale connections (30-second interval)
+- Client tracking with unique source identifiers
+- Automatic removal of disconnected clients
+- Ping/pong mechanism to detect stale connections (30-second interval)
 
 ### Error Handling
 
 Both client and server implementations include built-in error handling:
 
--   Connection errors are automatically handled with reconnection attempts (client)
--   Invalid messages are caught and logged (server)
--   Stale connections are automatically cleaned up (server)
+- Connection errors are automatically handled with reconnection attempts (client)
+- Invalid messages are caught and logged (server)
+- Stale connections are automatically cleaned up (server)
 
 ### Example: Chat Application
 
@@ -132,12 +132,12 @@ Here's a complete example showing how to create a simple chat application:
 const server = new WebSocketServer(8080);
 
 server.on("chat-message", ({ source, payload }) => {
-    // Broadcast received messages to all clients
-    server.broadcast("chat-message", {
-        sender: source,
-        message: payload.message,
-        timestamp: Date.now(),
-    });
+  // Broadcast received messages to all clients
+  server.broadcast("chat-message", {
+    sender: source,
+    message: payload.message,
+    timestamp: Date.now(),
+  });
 });
 
 // Client setup
@@ -145,12 +145,12 @@ const client = new WebSocketClient("ws://localhost:8080", "user123");
 
 // Send a message
 await client.send("chat-message", {
-    message: "Hello everyone!",
+  message: "Hello everyone!",
 });
 
 // Listen for messages
 client.on("chat-message", async (data) => {
-    console.log(`${data.sender}: ${data.message}`);
-    return { received: true };
+  console.log(`${data.sender}: ${data.message}`);
+  return { received: true };
 });
 ```

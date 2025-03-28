@@ -1,7 +1,7 @@
 {
-  "name": "your-package-name",
+  "name": "websocket-gateway",
   "version": "1.0.0",
-  "description": "Your package description",
+  "description": "WebSocket Gateway",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
