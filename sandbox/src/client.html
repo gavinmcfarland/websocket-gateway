@@ -20,6 +20,31 @@
 			padding: 10px;
 			margin: 10px 0;
 		}
+
+		.message-containers {
+			display: flex;
+			gap: 20px;
+		}
+
+		.message-section {
+			flex: 1;
+		}
+
+		.message-box {
+			height: 200px;
+			overflow-y: auto;
+			border: 1px solid #ccc;
+			padding: 10px;
+			margin: 10px 0;
+		}
+
+		.sent-message {
+			color: #0066cc;
+		}
+
+		.received-message {
+			color: #006600;
+		}
 	</style>
 </head>
 
@@ -30,8 +55,16 @@
 	<h2>Connected Clients</h2>
 	<div id="rooms"></div>
 
-	<h2>Messages</h2>
-	<div id="messages"></div>
+	<div class="message-containers">
+		<div class="message-section">
+			<h2>Sent Messages</h2>
+			<div id="sentMessages" class="message-box"></div>
+		</div>
+		<div class="message-section">
+			<h2>Received Messages</h2>
+			<div id="receivedMessages" class="message-box"></div>
+		</div>
+	</div>
 
 	<input type="text" id="messageInput" placeholder="Type a message">
 	<select id="targetType">
@@ -67,6 +100,34 @@
 			document.getElementById('clientId').textContent = `Connected as: ${socket.id}`;
 		});
 
+		// Add new event listener for file change notifications from dev server
+		if (clientType === 'figma') {
+			socket.on('MESSAGE_TO_TYPE', (data) => {
+				if (data.targetType === 'figma' && data.message.type === 'FILE_CHANGED') {
+					const changeData = data.message;
+
+					// Forward the file change notification to the test server
+					socket.emit('MESSAGE_TO_TYPE', {
+						targetType: 'test-client',
+						message: JSON.stringify({
+							type: 'FILE_CHANGE_COMPLETE',
+							data: changeData
+						})
+					});
+
+					// Add to sent messages display
+					const sentMessagesDiv = document.getElementById('sentMessages');
+					const timestamp = new Date().toLocaleTimeString();
+					sentMessagesDiv.innerHTML += `
+						<div class="sent-message">
+							[${timestamp}] File change notification sent to browser: ${JSON.stringify(changeData)}
+						</div>
+					`;
+					sentMessagesDiv.scrollTop = sentMessagesDiv.scrollHeight;
+				}
+			});
+		}
+
 		socket.on('ROOM_STATE', (rooms) => {
 			const roomsDiv = document.getElementById('rooms');
 			roomsDiv.innerHTML = '';
@@ -85,9 +146,15 @@
 		});
 
 		socket.on('MESSAGE_FROM_TYPE', ({ fromType, message }) => {
-			const messagesDiv = document.getElementById('messages');
-			messagesDiv.innerHTML += `<div>[${fromType}] ${message}</div>`;
-			messagesDiv.scrollTop = messagesDiv.scrollHeight;
+			const receivedMessagesDiv = document.getElementById('receivedMessages');
+			const timestamp = new Date().toLocaleTimeString();
+			const messageText = typeof message === 'object' ? JSON.stringify(message) : message;
+			receivedMessagesDiv.innerHTML += `
+                <div class="received-message">
+                    [${timestamp}] From ${fromType}: ${messageText}
+                </div>
+            `;
+			receivedMessagesDiv.scrollTop = receivedMessagesDiv.scrollHeight;
 		});
 
 		function sendMessage() {
@@ -95,13 +162,31 @@
 			const targetType = document.getElementById('targetType').value;
 
 			if (message) {
+				// Add message to sent messages
+				const sentMessagesDiv = document.getElementById('sentMessages');
+				const timestamp = new Date().toLocaleTimeString();
+				sentMessagesDiv.innerHTML += `
+                    <div class="sent-message">
+                        [${timestamp}] To ${targetType}: ${message}
+                    </div>
+                `;
+				sentMessagesDiv.scrollTop = sentMessagesDiv.scrollHeight;
+
+				// Send the message as a string
 				socket.emit('MESSAGE_TO_TYPE', {
 					targetType,
-					message
+					message: message  // Make sure we're sending the string directly
 				});
 				document.getElementById('messageInput').value = '';
 			}
 		}
+
+		// Add enter key support for sending messages
+		document.getElementById('messageInput').addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') {
+				sendMessage();
+			}
+		});
 	</script>
 </body>
 
