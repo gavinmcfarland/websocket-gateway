@@ -93,7 +93,7 @@
 		}
 
 		const socket = io({
-			auth: { clientType }
+			auth: { source: clientType }
 		});
 
 		socket.on('connect', () => {

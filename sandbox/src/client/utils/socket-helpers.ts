@@ -62,3 +62,16 @@ export function handleTypedMessages(
 		}
 	});
 }
+
+export function sendMessage(socket: WebSocket, message: any) {
+	const payload = {
+		target: message.clientType,
+		data: message.data,
+	};
+
+	socket.send(JSON.stringify(payload));
+}
+
+export function handleIncomingMessage(message: any) {
+	const { target, source, data } = JSON.parse(message);
+}

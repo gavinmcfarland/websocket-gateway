@@ -1,9 +1,10 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { Server } from "socket.io";
-import { io as Client } from "socket.io-client";
-import { createServer } from "node:http";
+import { createServer as createHttpServer } from "node:http";
 import chalk from "chalk";
 import { roomStore } from "../src/stores/socketRoomStore";
+import { createClient } from "../sandbox/src/client/utils/client-factory";
+import { createServer } from "../sandbox/src/server/utils/server-factory";
+import type { SocketServer } from "../sandbox/src/server/utils/server-factory";
 
 const log = {
 	server: (...args: any[]) =>
@@ -18,14 +19,22 @@ const log = {
 chalk.level = 2;
 
 describe("SocketIO Server", () => {
-	let io: Server;
-	let httpServer: ReturnType<typeof createServer>;
+	let io: SocketServer;
+	let httpServer: ReturnType<typeof createHttpServer>;
 	const PORT = 8080;
 
 	beforeEach(() => {
 		log.server("Starting server on port", PORT);
-		httpServer = createServer();
-		io = new Server(httpServer);
+		httpServer = createHttpServer();
+		io = createServer({
+			httpServer,
+			cors: {
+				origin: "*",
+			},
+			serverOptions: {
+				// Add any additional Socket.IO options here
+			},
+		});
 		httpServer.listen(PORT);
 		log.server("Server started");
 		roomStore.clear(); // Clear the store before each test
@@ -38,9 +47,7 @@ describe("SocketIO Server", () => {
 
 	test("Server starts and accepts connections", () => {
 		return new Promise<void>((done) => {
-			const client = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
-			});
+			const client = createClient({ source: "test", port: PORT });
 
 			io.on("connection", (socket) => {
 				socket.on("test", (payload) => {
@@ -61,8 +68,8 @@ describe("SocketIO Server", () => {
 	test("Server can broadcast messages", async () => {
 		log.server("Starting broadcast test");
 
-		const client1 = Client(`http://localhost:${PORT}`, { forceNew: true });
-		const client2 = Client(`http://localhost:${PORT}`, { forceNew: true });
+		const client1 = createClient({ source: "test1", port: PORT });
+		const client2 = createClient({ source: "test2", port: PORT });
 
 		// Create a promise that resolves when both clients receive the message
 		const messagesReceived = new Promise<void>((resolve) => {
@@ -113,11 +120,13 @@ describe("SocketIO Server", () => {
 
 	test("Server can send message to specific client", () => {
 		return new Promise<void>((done) => {
-			const client1 = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
+			const client1 = createClient({
+				source: "client1",
+				port: PORT,
 			});
-			const client2 = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
+			const client2 = createClient({
+				source: "client2",
+				port: PORT,
 			});
 
 			let client2Id: string;
@@ -155,50 +164,52 @@ describe("SocketIO Server", () => {
 
 	test("Client can send message to specific client type", () => {
 		return new Promise<void>((done) => {
-			const browserClient = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
-				auth: { clientType: "browser" },
+			const browserClient = createClient({
+				source: "browser",
+				port: PORT,
 			});
-			const figmaClient1 = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
-				auth: { clientType: "figma" },
+			const figmaClient1 = createClient({
+				source: "figma",
+				port: PORT,
 			});
-			const figmaClient2 = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
-				auth: { clientType: "figma" },
+			const figmaClient2 = createClient({
+				source: "figma",
+				port: PORT,
 			});
-			const nodeClient = Client(`http://localhost:${PORT}`, {
-				forceNew: true,
-				auth: { clientType: "node" },
+			const nodeClient = createClient({
+				source: "node",
+				port: PORT,
 			});
 
 			// Track received messages for figma clients
 			let figmaMessagesReceived = 0;
 
 			io.on("connection", (socket) => {
-				const clientType = socket.handshake.auth.clientType;
-				log.server(`Client ${socket.id} connected as ${clientType}`);
-				socket.data.clientType = clientType;
-				socket.join(clientType);
+				const source = socket.handshake.auth.source;
+				log.server(`Client ${socket.id} connected as ${source}`);
 
-				socket.on("MESSAGE_TO_TYPE", ({ targetType, message }) => {
-					log.server(
-						`Sending message to ${targetType} from ${socket.data.clientType}`
-					);
-					io.to(targetType).emit("MESSAGE_FROM_TYPE", {
-						fromType: socket.data.clientType,
-						message,
+				// Helper function to route messages
+				const routeMessage = (eventName: string, message: any) => {
+					io.route(socket, eventName, {
+						...message,
+						source,
 					});
+				};
+
+				// Specific event handling
+				socket.on("LOAD_CONTENT", (message) => {
+					log.server(`Received LOAD_CONTENT from ${source}`);
+					routeMessage("CONTENT_LOADED", message);
 				});
 			});
 
 			// Set up listeners for Figma clients
 			const figmaMessageHandler = (data: any) => {
 				log.client(
-					`Figma client received message: ${JSON.stringify(data)}`
+					`Figma client received content: ${JSON.stringify(data)}`
 				);
-				expect(data.fromType).toBe("browser");
-				expect(data.message).toBe("Hello Figma clients!");
+				expect(data.source).toBe("browser");
+				expect(data.content).toBe("Updated design content");
 				figmaMessagesReceived++;
 
 				// Both Figma clients should receive the message
@@ -211,69 +222,63 @@ describe("SocketIO Server", () => {
 				}
 			};
 
-			figmaClient1.on("MESSAGE_FROM_TYPE", figmaMessageHandler);
-			figmaClient2.on("MESSAGE_FROM_TYPE", figmaMessageHandler);
+			figmaClient1.on("CONTENT_LOADED", figmaMessageHandler);
+			figmaClient2.on("CONTENT_LOADED", figmaMessageHandler);
 
 			// Node client should not receive Figma messages
-			nodeClient.on("MESSAGE_FROM_TYPE", () => {
+			nodeClient.on("CONTENT_LOADED", () => {
 				throw new Error("Node client should not receive this message");
 			});
 
 			// Wait for all clients to connect
 			Promise.all([
-				new Promise<void>((resolve) => {
-					browserClient.on("connect", () => {
-						log.client("Browser client connected");
-						resolve();
-					});
-				}),
-				new Promise<void>((resolve) => {
-					figmaClient1.on("connect", () => {
-						log.client("Figma client 1 connected");
-						resolve();
-					});
-				}),
-				new Promise<void>((resolve) => {
-					figmaClient2.on("connect", () => {
-						log.client("Figma client 2 connected");
-						resolve();
-					});
-				}),
-				new Promise<void>((resolve) => {
-					nodeClient.on("connect", () => {
-						log.client("Node client connected");
-						resolve();
-					});
-				}),
+				new Promise<void>((resolve) =>
+					browserClient.on("connect", resolve)
+				),
+				new Promise<void>((resolve) =>
+					figmaClient1.on("connect", resolve)
+				),
+				new Promise<void>((resolve) =>
+					figmaClient2.on("connect", resolve)
+				),
+				new Promise<void>((resolve) =>
+					nodeClient.on("connect", resolve)
+				),
 			]).then(() => {
-				log.client("Browser sending message to figma clients");
-				browserClient.emit("MESSAGE_TO_TYPE", {
-					targetType: "figma",
-					message: "Hello Figma clients!",
+				log.client("Browser sending content update to figma clients");
+				browserClient.emit("LOAD_CONTENT", {
+					target: "figma",
+					content: "Updated design content",
+				});
+
+				// Test that node client can't send to figma clients
+				nodeClient.emit("LOAD_CONTENT", {
+					target: "figma",
+					content: "This should not be received",
 				});
 			});
 		});
 	}, 10000);
 
 	test("Server can list all rooms and their members", async () => {
-		const browserClient = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "browser" },
+		const browserClient = createClient({
+			source: "browser",
+			port: PORT,
 		});
-		const figmaClient1 = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "figma" },
+		const figmaClient1 = createClient({
+			source: "figma",
+			port: PORT,
 		});
-		const figmaClient2 = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "figma" },
+		const figmaClient2 = createClient({
+			source: "figma",
+			port: PORT,
 		});
 
 		// Set up connection handler to join rooms
 		io.on("connection", (socket) => {
-			const clientType = socket.handshake.auth.clientType;
-			log.server(`Client ${socket.id} connected as ${clientType}`);
-			socket.join(clientType);
+			const source = socket.handshake.auth.source;
+			log.server(`Client ${socket.id} connected as ${source}`);
+			socket.join(source);
 		});
 
 		// Helper function to get room details
@@ -349,41 +354,38 @@ describe("SocketIO Server", () => {
 		});
 
 		// Create clients but don't connect yet
-		const browserClient = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "browser" },
+		const browserClient = createClient({
+			source: "browser",
+			port: PORT,
 		});
-		const figmaClient1 = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "figma" },
+		const figmaClient1 = createClient({
+			source: "figma",
+			port: PORT,
 		});
-		const figmaClient2 = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "figma" },
+		const figmaClient2 = createClient({
+			source: "figma",
+			port: PORT,
 		});
-		const nodeClient = Client(`http://localhost:${PORT}`, {
-			forceNew: true,
-			auth: { clientType: "node" },
-		});
+		const nodeClient = createClient({ source: "node", port: PORT });
 
 		// Track client IDs for verification
 		const clientIds: Record<string, string> = {};
 
 		// Set up connection handler
 		io.on("connection", (socket) => {
-			const clientType = socket.handshake.auth.clientType as string;
-			socket.join(clientType);
-			clientIds[socket.id] = clientType;
-			log.server(`Client ${socket.id} connected as ${clientType}`);
+			const source = socket.handshake.auth.source as string;
+			socket.join(source);
+			clientIds[socket.id] = source;
+			log.server(`Client ${socket.id} connected as ${source}`);
 
-			roomStore.addMember(clientType, {
+			roomStore.addMember(source, {
 				id: socket.id,
-				clientType,
+				source: source,
 			});
 
 			socket.on("disconnect", () => {
 				log.server(`Client ${socket.id} disconnected`);
-				roomStore.removeMember(clientType, socket.id);
+				roomStore.removeMember(source, socket.id);
 			});
 		});
 
@@ -396,8 +398,8 @@ describe("SocketIO Server", () => {
 				// Skip socket ID rooms
 				if (!io.sockets.sockets.has(room)) {
 					roomMembers[room] = Array.from(sockets).map((socketId) => {
-						const clientType = clientIds[socketId];
-						return `${clientType}:${socketId}`;
+						const source = clientIds[socketId];
+						return `${source}:${socketId}`;
 					});
 				}
 			}

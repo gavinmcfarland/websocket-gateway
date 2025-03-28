@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 
 export type RoomMember = {
 	id: string;
-	clientType: string;
+	source: string;
 };
 
 export type RoomMembers = {

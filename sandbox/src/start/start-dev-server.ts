@@ -33,7 +33,7 @@ function watchForFileChanges(client: SocketClient) {
 
 // Initialize the client using the factory
 const devServer = createClient({
-	clientType: "dev-server",
+	source: "dev-server",
 });
 
 // Start watching for file changes
