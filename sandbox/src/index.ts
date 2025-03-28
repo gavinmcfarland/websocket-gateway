@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 import { createServer } from "node:http";
 import * as fs from "node:fs";
 import { dirname, join } from "node:path";
-import { roomStore } from "./roomStore";
+import { roomStore } from "./shared/store";
 
 // Create HTTP server
 const httpServer = createServer((req, res) => {

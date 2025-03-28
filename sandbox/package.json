@@ -1,21 +1,25 @@
 {
-  "name": "websocket-package-sandbox",
-  "version": "1.0.0",
-  "description": "Sandbox environment for testing the websocket package",
-  "private": true,
-  "scripts": {
-    "start": "ts-node src/index.ts",
-    "dev": "nodemon src/index.ts",
-    "kill-port": "lsof -ti :${PORT:-8080} | xargs kill -9 || true",
-    "kill-port:win": "FOR /F \"tokens=5\" %P IN ('netstat -a -n -o ^| findstr :%PORT%') DO TaskKill /PID %P /F"
-  },
-  "dependencies": {
-    "socket.io": "^4.7.4",
-    "socket.io-client": "^4.7.4"
-  },
-  "devDependencies": {
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "nodemon": "^3.0.3"
-  }
+    "name": "websocket-package-sandbox",
+    "version": "1.0.0",
+    "description": "Sandbox environment for testing the websocket package",
+    "private": true,
+    "scripts": {
+        "start": "ts-node src/index.ts",
+        "dev": "nodemon src/index.ts",
+        "kill-port": "lsof -ti :${PORT:-8080} | xargs kill -9 || true",
+        "kill-port:win": "FOR /F \"tokens=5\" %P IN ('netstat -a -n -o ^| findstr :%PORT%') DO TaskKill /PID %P /F",
+        "monitor": "ts-node src/monitor.ts",
+        "dev-server-client": "ts-node src/dev-server-client.ts",
+        "test-client": "ts-node src/test-client.ts"
+    },
+    "dependencies": {
+        "socket.io": "^4.7.4",
+        "socket.io-client": "^4.7.4"
+    },
+    "devDependencies": {
+        "chalk": "^4.1.2",
+        "nodemon": "^3.0.3",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
 }
