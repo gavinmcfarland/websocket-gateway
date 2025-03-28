@@ -1,6 +1,6 @@
-# WebSocket Gateway
+# Socket.IO Gateway
 
-A robust WebSocket implementation providing both server and client capabilities.
+Experimenting with a Socket.IO gateway for cross-client communication.
 
 ## Installation
 
@@ -8,38 +8,85 @@ A robust WebSocket implementation providing both server and client capabilities.
 npm install
 ```
 
-## Project Structure
+## Features
 
-```
-.
-├── src/
-│   ├── websocket-server.ts
-│   └── websocket-client.ts
-├── test/
-│   └── websocket-server.test.ts
-└── docs/
-    └── websocket-docs.md
-```
+- Client connection management
+- Broadcast messaging
+- Direct messaging to specific clients
+- Client type categorization (browser, figma, vscode)
+- Room-based messaging for client types
 
 ## Usage
 
-### WebSocket Server
+### Socket.IO Server
 
 ```typescript
-import { WebSocketServer } from "./src/websocket-server";
+import { Server } from "socket.io";
+import { createServer } from "node:http";
 
-const server = new WebSocketServer();
-server.start();
+// Create HTTP server
+const httpServer = createServer();
+const io = new Server(httpServer);
+
+// Handle connections
+io.on("connection", (socket) => {
+  // Access client type from auth
+  const clientType = socket.handshake.auth.clientType;
+
+  // Add socket to its type room
+  socket.join(clientType);
+
+  // Handle typed messages
+  socket.on("message_to_type", ({ targetType, message }) => {
+    io.to(targetType).emit("typed_message", {
+      fromType: socket.data.clientType,
+      message,
+    });
+  });
+});
+
+httpServer.listen(8080);
 ```
 
-### WebSocket Client
+### Socket.IO Client
 
 ```typescript
-import { WebSocketClient } from "./src/websocket-client";
+import { io as Client } from "socket.io-client";
 
-const client = new WebSocketClient();
-client.connect();
+// Connect with client type
+const client = Client("http://localhost:8080", {
+  auth: { clientType: "browser" },
+});
+
+// Send message to specific client type
+client.emit("message_to_type", {
+  targetType: "figma",
+  message: "Hello Figma clients!",
+});
+
+// Listen for typed messages
+client.on("typed_message", ({ fromType, message }) => {
+  console.log(`Message from ${fromType}: ${message}`);
+});
 ```
+
+## Supported Events
+
+| Event             | Description                          | Payload                                |
+| ----------------- | ------------------------------------ | -------------------------------------- |
+| `connection`      | Fired when client connects           | Socket instance                        |
+| `message_to_type` | Send message to specific client type | `{ targetType: string, message: any }` |
+| `typed_message`   | Receive message sent to client type  | `{ fromType: string, message: any }`   |
+| `broadcast`       | Broadcast to all clients             | `{ message: any }`                     |
+| `directMessage`   | Send to specific client              | `{ message: any }`                     |
+
+## Client Types
+
+The system supports different client types that can be specified in the connection auth:
+
+- `browser`
+- `figma`
+- `vscode`
 
 ## Testing
 
@@ -49,7 +96,12 @@ Run the test suite using:
 npm test
 ```
 
-Tests are configured using Vitest as indicated by the `vitest.config.ts` file.
+The test suite includes verification of:
+
+- Basic client-server connectivity
+- Broadcast messaging to all clients
+- Direct messaging to specific clients
+- Type-based messaging between different client categories
 
 ## Documentation
 

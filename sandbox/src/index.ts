@@ -1,117 +1,89 @@
-import {
-  WebSocketServer,
-  WebSocketClient,
-  ShutdownManager,
-} from "websocket-gateway";
+import { Server } from "socket.io";
+import { io as Client } from "socket.io-client";
+import { createServer } from "node:http";
 
-// Create a WebSocket server
-const server = new WebSocketServer(8080);
+const PORT = 8080;
 
-// Create a WebSocket client
-const client = new WebSocketClient("ws://localhost:8080", "client1");
+// Create HTTP server
+const httpServer = createServer();
 
-// Set up shutdown manager with longer timeout and more detailed logging
-const shutdownManager = new ShutdownManager({
-  timeout: 15000,
-  exitProcess: true,
-  cleanup: async () => {
-    console.log("🧹 Starting cleanup process...");
-    try {
-      // First close the client and wait for its "close" event
-      console.log("📝 Initiating client shutdown...");
-      const clientClosePromise = new Promise<void>((resolve, reject) => {
-        // Add timeout to prevent hanging
-        const timeoutId = setTimeout(() => {
-          reject(new Error("Client close timeout"));
-        }, 5000);
+// Create Socket.IO server
+const io = new Server(httpServer);
 
-        const closeHandler = () => {
-          clearTimeout(timeoutId);
-          console.log("✅ Client connection closed event received");
-          client.off("close", closeHandler);
-          resolve();
-        };
-        client.on("close", closeHandler);
-        client.close();
-      });
+// Create Socket.IO client
+const client = Client(`http://localhost:${PORT}`);
 
-      await clientClosePromise;
-      console.log("✅ Client cleanup complete");
-
-      // Then close the server and wait for its "close" event
-      console.log("📝 Initiating server shutdown...");
-      const serverClosePromise = new Promise<void>((resolve, reject) => {
-        // Add timeout to prevent hanging
-        const timeoutId = setTimeout(() => {
-          reject(new Error("Server close timeout"));
-        }, 5000);
-
-        const closeHandler = () => {
-          clearTimeout(timeoutId);
-          console.log("✅ Server close event received");
-          server.off("close", closeHandler);
-          resolve();
-        };
-        server.on("close", closeHandler);
-        server.close();
-      });
-
-      await serverClosePromise;
-      console.log("✅ Server cleanup complete");
-    } catch (error) {
-      console.error("❌ Error during cleanup:", error);
-      // Force close everything if there's an error
-      client.terminate?.();
-      server.close();
-      throw error;
-    }
-  },
-  onShutdown: () => {
-    console.log("🚨 Shutdown initiated - starting graceful shutdown process");
-    console.log("👋 Closing all connections...");
-  },
-});
-
-// Add server and client to shutdown manager
-shutdownManager.addServer(server);
-shutdownManager.addClient(client);
-
-// Register shutdown handlers (SIGINT, SIGTERM)
-shutdownManager.registerShutdownHandlers();
-
-// Normal connection handling
-server.on("connection", (socket) => {
+// Server connection handling
+io.on("connection", (socket) => {
   console.log("Client connected!");
+
+  socket.on("message", (data) => {
+    console.log("Server received:", data);
+    // Echo the message back
+    socket.emit("message", `Server echo: ${data}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected!");
+  });
 });
 
-client.on("open", async () => {
+// Client event handlers
+client.on("connect", () => {
   console.log("Connected to server!");
-  client.send("Hello from client!");
+  client.emit("message", "Hello from client!");
 });
 
-client.on("message", async (data) => {
+client.on("message", (data) => {
   console.log("Client received:", data);
 });
 
-// Update the client event handler to properly handle closure
-client.on("close", async () => {
-  console.log("📴 Client disconnected cleanly");
+client.on("disconnect", () => {
+  console.log("📴 Client disconnected");
 });
 
-// Add server close handler
-server.on("close", () => {
-  console.log("📴 Server shut down cleanly");
+// Error handlers
+client.on("connect_error", (error) => {
+  console.error("Client connection error:", error);
 });
 
-// Add error handlers
-server.on("error", (error) => {
-  console.error("Server error:", error);
+// Start the server
+httpServer.listen(PORT, () => {
+  console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
+  console.log("ℹ️  Press Ctrl+C to stop the server\n");
 });
 
-client.on("error", (error) => {
-  console.error("Client error:", error);
-});
+// Graceful shutdown handling
+const shutdown = async () => {
+  console.log("\n🚨 Shutdown initiated");
 
-// Log instructions for testing shutdown
-console.log("\n🚀 Server and client are running");
-console.log("ℹ️  Press Ctrl+C to test graceful shutdown\n");
+  try {
+    console.log("📝 Closing client connection...");
+    client.close();
+
+    console.log("📝 Closing server...");
+    await new Promise<void>((resolve) => {
+      io.close(() => {
+        console.log("✅ Socket.IO server closed");
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      httpServer.close(() => {
+        console.log("✅ HTTP server closed");
+        resolve();
+      });
+    });
+
+    console.log("👋 Graceful shutdown complete");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Error during shutdown:", error);
+    process.exit(1);
+  }
+};
+
+// Register shutdown handlers
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
