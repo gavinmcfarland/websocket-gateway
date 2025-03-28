@@ -7,6 +7,11 @@ export interface Client {
 	isAlive: boolean;
 }
 
+interface EventData {
+	source: string;
+	payload: Record<string, any>;
+}
+
 export class WebSocketServer {
 	private wss: WSServer;
 	private clients: Map<string, Client>;
@@ -117,7 +122,7 @@ export class WebSocketServer {
 	}
 
 	// Listen for custom events
-	public on(event: string, callback: (data: any) => void): void {
+	public on(event: string, callback: (data: EventData) => void): void {
 		this.eventSystem.on(event, callback);
 	}
 

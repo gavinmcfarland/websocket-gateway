@@ -1,22 +1,22 @@
 {
-    "name": "your-package-name",
-    "version": "1.0.0",
-    "description": "Your package description",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "dev": "tsc --watch",
-        "build": "tsc",
-        "clean": "rm -rf dist",
-        "test": "vitest"
-    },
-    "dependencies": {
-        "reconnecting-websocket": "^4.4.0",
-        "ws": "^8.18.1"
-    },
-    "devDependencies": {
-        "@types/ws": "^8.18.0",
-        "typescript": "^5.3.3",
-        "vitest": "^1.6.1"
-    }
+  "name": "your-package-name",
+  "version": "1.0.0",
+  "description": "Your package description",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc",
+    "test": "npm run build && vitest"
+  },
+  "dependencies": {
+    "reconnecting-websocket": "^4.4.0",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1"
+  }
 }
