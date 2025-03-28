@@ -7,27 +7,19 @@ import { roomStore } from "./shared/store";
 // Create HTTP server
 const httpServer = createServer((req, res) => {
 	// Simple router for serving HTML files
-	if (req.url === "/figma") {
-		fs.readFile(join(__dirname, "figma.html"), (err, content) => {
+	if (req.url === "/" || req.url?.startsWith("/?type=")) {
+		fs.readFile(join(__dirname, "client.html"), (err, content) => {
 			if (err) {
 				res.writeHead(500);
-				res.end("Error loading figma.html");
+				res.end("Error loading client.html");
 				return;
 			}
 			res.writeHead(200, { "Content-Type": "text/html" });
 			res.end(content);
 		});
 	} else {
-		// Default to browser.html
-		fs.readFile(join(__dirname, "browser.html"), (err, content) => {
-			if (err) {
-				res.writeHead(500);
-				res.end("Error loading browser.html");
-				return;
-			}
-			res.writeHead(200, { "Content-Type": "text/html" });
-			res.end(content);
-		});
+		res.writeHead(404);
+		res.end("Not found");
 	}
 });
 
@@ -73,6 +65,6 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 8080;
 httpServer.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}`);
-	console.log(`Figma client: http://localhost:${PORT}/figma`);
-	console.log(`Browser client: http://localhost:${PORT}`);
+	console.log(`Figma client: http://localhost:${PORT}/?type=figma`);
+	console.log(`Browser client: http://localhost:${PORT}/?type=browser`);
 });

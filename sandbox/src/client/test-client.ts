@@ -1,14 +1,17 @@
 import { io } from "socket.io-client";
 import chalk from "chalk";
 
-class TestClient {
+/**
+ * Client class for testing connections to the development server
+ */
+export class TestClient {
 	private socket = io("http://localhost:8080", {
 		auth: { clientType: "test" },
 	});
 
 	constructor() {
 		console.clear();
-		console.log(chalk.cyan.bold("\n🧪 Starting Test Client...\n"));
+		console.log(chalk.cyan("\n⚡ Starting Test Client...\n"));
 
 		this.socket.on("connect", () => {
 			console.log(
@@ -61,6 +64,3 @@ class TestClient {
 		}, 1000);
 	}
 }
-
-// Start the test client
-new TestClient();

@@ -6,9 +6,9 @@ This is a sandbox environment for testing and demonstrating the `websocket-gatew
 
 1. Make sure you have Node.js installed on your system
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
 
 ## Running the Demo
 
@@ -46,11 +46,11 @@ set PORT=3000 && npm run kill-port:win  # Kills process on specified port
 
 ## What's Included
 
-- A basic WebSocket server running on port 8080
-- A WebSocket client that connects to the server
-- Basic message handling and connection events
-- Graceful shutdown handling
-- Port management utilities
+-   A basic WebSocket server running on port 8080
+-   A WebSocket client that connects to the server
+-   Basic message handling and connection events
+-   Graceful shutdown handling
+-   Port management utilities
 
 ## Project Structure
 

@@ -9,8 +9,8 @@
         "kill-port": "lsof -ti :${PORT:-8080} | xargs kill -9 || true",
         "kill-port:win": "FOR /F \"tokens=5\" %P IN ('netstat -a -n -o ^| findstr :%PORT%') DO TaskKill /PID %P /F",
         "monitor": "ts-node src/cli/monitor.ts",
-        "dev-server-client": "ts-node src/dev-server-client.ts",
-        "test-client": "ts-node src/test-client.ts"
+        "dev-server-client": "ts-node src/start/start-dev-server.ts",
+        "test-client": "ts-node src/start/start-test-client.ts"
     },
     "dependencies": {
         "socket.io": "^4.7.4",
