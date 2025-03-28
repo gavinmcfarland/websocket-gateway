@@ -1,89 +1,78 @@
 import { Server } from "socket.io";
-import { io as Client } from "socket.io-client";
 import { createServer } from "node:http";
-
-const PORT = 8080;
+import * as fs from "node:fs";
+import { dirname, join } from "node:path";
+import { roomStore } from "./roomStore";
 
 // Create HTTP server
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+	// Simple router for serving HTML files
+	if (req.url === "/figma") {
+		fs.readFile(join(__dirname, "figma.html"), (err, content) => {
+			if (err) {
+				res.writeHead(500);
+				res.end("Error loading figma.html");
+				return;
+			}
+			res.writeHead(200, { "Content-Type": "text/html" });
+			res.end(content);
+		});
+	} else {
+		// Default to browser.html
+		fs.readFile(join(__dirname, "browser.html"), (err, content) => {
+			if (err) {
+				res.writeHead(500);
+				res.end("Error loading browser.html");
+				return;
+			}
+			res.writeHead(200, { "Content-Type": "text/html" });
+			res.end(content);
+		});
+	}
+});
 
 // Create Socket.IO server
 const io = new Server(httpServer);
 
-// Create Socket.IO client
-const client = Client(`http://localhost:${PORT}`);
-
-// Server connection handling
+// Handle socket connections
 io.on("connection", (socket) => {
-  console.log("Client connected!");
+	const clientType = socket.handshake.auth.clientType as string;
+	console.log(`Client connected: ${socket.id} (${clientType})`);
 
-  socket.on("message", (data) => {
-    console.log("Server received:", data);
-    // Echo the message back
-    socket.emit("message", `Server echo: ${data}`);
-  });
+	// Join room for client type
+	socket.join(clientType);
+	socket.data.clientType = clientType;
 
-  socket.on("disconnect", () => {
-    console.log("Client disconnected!");
-  });
+	// Add to room store
+	roomStore.addMember(clientType, {
+		id: socket.id,
+		clientType,
+	});
+
+	// Handle messages to specific client types
+	socket.on("MESSAGE_TO_TYPE", ({ targetType, message }) => {
+		console.log(`Message from ${clientType} to ${targetType}:`, message);
+		io.to(targetType).emit("MESSAGE_FROM_TYPE", {
+			fromType: clientType,
+			message,
+		});
+	});
+
+	// Handle disconnect
+	socket.on("disconnect", () => {
+		console.log(`Client disconnected: ${socket.id} (${clientType})`);
+		roomStore.removeMember(clientType, socket.id);
+		io.emit("ROOM_STATE", roomStore.getState());
+	});
+
+	// Broadcast updated room state
+	const rooms = roomStore.getState();
+	io.emit("ROOM_STATE", rooms);
 });
 
-// Client event handlers
-client.on("connect", () => {
-  console.log("Connected to server!");
-  client.emit("message", "Hello from client!");
-});
-
-client.on("message", (data) => {
-  console.log("Client received:", data);
-});
-
-client.on("disconnect", () => {
-  console.log("📴 Client disconnected");
-});
-
-// Error handlers
-client.on("connect_error", (error) => {
-  console.error("Client connection error:", error);
-});
-
-// Start the server
+const PORT = process.env.PORT || 8080;
 httpServer.listen(PORT, () => {
-  console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-  console.log("ℹ️  Press Ctrl+C to stop the server\n");
+	console.log(`Server running on http://localhost:${PORT}`);
+	console.log(`Figma client: http://localhost:${PORT}/figma`);
+	console.log(`Browser client: http://localhost:${PORT}`);
 });
-
-// Graceful shutdown handling
-const shutdown = async () => {
-  console.log("\n🚨 Shutdown initiated");
-
-  try {
-    console.log("📝 Closing client connection...");
-    client.close();
-
-    console.log("📝 Closing server...");
-    await new Promise<void>((resolve) => {
-      io.close(() => {
-        console.log("✅ Socket.IO server closed");
-        resolve();
-      });
-    });
-
-    await new Promise<void>((resolve) => {
-      httpServer.close(() => {
-        console.log("✅ HTTP server closed");
-        resolve();
-      });
-    });
-
-    console.log("👋 Graceful shutdown complete");
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Error during shutdown:", error);
-    process.exit(1);
-  }
-};
-
-// Register shutdown handlers
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);

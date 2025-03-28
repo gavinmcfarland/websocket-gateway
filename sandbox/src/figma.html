@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Figma Client</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        .room {
+            margin-bottom: 20px;
+        }
+
+        .member {
+            margin: 5px 0;
+        }
+
+        #messages {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Figma Client</h1>
+    <div id="clientId"></div>
+
+    <h2>Connected Clients</h2>
+    <div id="rooms"></div>
+
+    <h2>Messages</h2>
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type a message">
+    <select id="targetType">
+        <option value="figma">Figma</option>
+        <option value="browser">Browser</option>
+    </select>
+    <button onclick="sendMessage()">Send Message</button>
+
+    <script>
+        const socket = io({
+            auth: { clientType: 'figma' }
+        });
+
+        socket.on('connect', () => {
+            document.getElementById('clientId').textContent = `Connected as: ${socket.id}`;
+        });
+
+        socket.on('ROOM_STATE', (rooms) => {
+            const roomsDiv = document.getElementById('rooms');
+            roomsDiv.innerHTML = '';
+
+            Object.entries(rooms).forEach(([roomName, members]) => {
+                const roomDiv = document.createElement('div');
+                roomDiv.className = 'room';
+                roomDiv.innerHTML = `
+                    <h3>${roomName} (${members.length})</h3>
+                    ${members.map(m => `
+                        <div class="member">${m.id} (${m.clientType})</div>
+                    `).join('')}
+                `;
+                roomsDiv.appendChild(roomDiv);
+            });
+        });
+
+        socket.on('MESSAGE_FROM_TYPE', ({ fromType, message }) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<div>[${fromType}] ${message}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            const targetType = document.getElementById('targetType').value;
+
+            if (message) {
+                socket.emit('MESSAGE_TO_TYPE', {
+                    targetType,
+                    message
+                });
+                document.getElementById('messageInput').value = '';
+            }
+        }
+    </script>
+</body>
+
+</html>
