@@ -1,22 +1,5 @@
-console.log("Hello, world!");
+export { WebSocketServer } from "./websocket-server";
+export { WebSocketClient } from "./websocket-client";
 
-// A simple function to test the TypeScript compilation
-export function greet(name: string): string {
-	return `Hello, ${name}!`;
-}
-
-// Test the function
-console.log(greet("TypeScript"));
-
-// Test some TypeScript features
-interface User {
-	name: string;
-	age: number;
-}
-
-const user: User = {
-	name: "Test User",
-	age: 25,
-};
-
-console.log("User:", user);
+// Re-export types that consumers might need
+export type { Client } from "./websocket-server";

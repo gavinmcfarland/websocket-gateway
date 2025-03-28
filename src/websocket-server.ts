@@ -1,7 +1,7 @@
 import WebSocket, { WebSocketServer as WSServer } from "ws";
 import { EventEmitter } from "events";
 
-interface Client {
+export interface Client {
 	ws: WebSocket;
 	source: string;
 	isAlive: boolean;
