@@ -5,10 +5,10 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "start": "ts-node src/server.ts",
-        "dev": "nodemon src/server.ts",
-        "monitor": "ts-node src/cli/monitor.ts",
-        "test-client": "ts-node src/cli/test-client.ts"
+        "start": "tsx src/server.ts",
+        "dev": "tsx watch src/server.ts",
+        "monitor": "tsx src/cli/monitor.ts",
+        "test-client": "tsx src/cli/test-client.ts"
     },
     "dependencies": {
         "websocket-gateway": "file:..",
@@ -18,7 +18,7 @@
     "devDependencies": {
         "@types/express": "^4.17.21",
         "nodemon": "^3.0.3",
-        "ts-node": "^10.9.2",
+        "tsx": "^4.7.1",
         "typescript": "^5.3.3"
     }
 }
