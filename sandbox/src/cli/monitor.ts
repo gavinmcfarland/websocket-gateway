@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 import chalk from "chalk";
-import { io } from "socket.io-client";
+import { createClient } from "../../../src/client-factory";
 
 class ConnectionMonitor {
 	constructor() {
@@ -8,8 +8,9 @@ class ConnectionMonitor {
 		console.clear();
 		console.log(chalk.cyan.bold("📡 Starting Socket.IO Monitor...\n"));
 
-		const socket = io("http://localhost:8080", {
-			auth: { clientType: "monitor" },
+		const socket = createClient({
+			room: "monitor",
+			port: 8080,
 		});
 
 		socket.on("connect", () => {

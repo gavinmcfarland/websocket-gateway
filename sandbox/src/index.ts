@@ -3,10 +3,14 @@ import { createServer } from "node:http";
 import * as fs from "node:fs";
 import { dirname, join } from "node:path";
 import { roomStore } from "./shared/store";
+import { createServer as createSocketServer } from "../../dist/server-factory";
+import { fileURLToPath } from "node:url";
 
 // Create HTTP server
 const httpServer = createServer((req, res) => {
-	// Simple router for serving HTML files
+	const __filename = fileURLToPath(import.meta.url);
+	const __dirname = dirname(__filename);
+
 	if (req.url === "/" || req.url?.startsWith("/?type=")) {
 		fs.readFile(join(__dirname, "client.html"), (err, content) => {
 			if (err) {
@@ -17,6 +21,21 @@ const httpServer = createServer((req, res) => {
 			res.writeHead(200, { "Content-Type": "text/html" });
 			res.end(content);
 		});
+	} else if (req.url?.startsWith("/client/")) {
+		// Serve client-side files
+		const filePath = join(__dirname, req.url);
+		fs.readFile(filePath, (err, content) => {
+			if (err) {
+				res.writeHead(404);
+				res.end("File not found");
+				return;
+			}
+			const ext = req.url.split(".").pop();
+			const contentType =
+				ext === "js" ? "application/javascript" : "text/plain";
+			res.writeHead(200, { "Content-Type": contentType });
+			res.end(content);
+		});
 	} else {
 		res.writeHead(404);
 		res.end("Not found");
@@ -24,36 +43,36 @@ const httpServer = createServer((req, res) => {
 });
 
 // Create Socket.IO server
-const io = new Server(httpServer);
+const io = createSocketServer({ httpServer });
 
 // Handle socket connections
 io.on("connection", (socket) => {
-	const clientType = socket.handshake.auth.clientType as string;
-	console.log(`Client connected: ${socket.id} (${clientType})`);
+	const room = socket.handshake.auth.room as string;
+	console.log(`Client connected: ${socket.id} (${room})`);
 
 	// Join room for client type
-	socket.join(clientType);
-	socket.data.clientType = clientType;
+	socket.join(room);
+	socket.data.room = room;
 
 	// Add to room store
-	roomStore.addMember(clientType, {
+	roomStore.addMember(room, {
 		id: socket.id,
-		clientType,
+		room,
 	});
 
 	// Handle messages to specific client types
 	socket.on("MESSAGE_TO_TYPE", ({ targetType, message }) => {
-		console.log(`Message from ${clientType} to ${targetType}:`, message);
+		console.log(`Message from ${room} to ${targetType}:`, message);
 		io.to(targetType).emit("MESSAGE_FROM_TYPE", {
-			fromType: clientType,
+			room: room,
 			message,
 		});
 	});
 
 	// Handle disconnect
 	socket.on("disconnect", () => {
-		console.log(`Client disconnected: ${socket.id} (${clientType})`);
-		roomStore.removeMember(clientType, socket.id);
+		console.log(`Client disconnected: ${socket.id} (${room})`);
+		roomStore.removeMember(room, socket.id);
 		io.emit("ROOM_STATE", roomStore.getState());
 	});
 

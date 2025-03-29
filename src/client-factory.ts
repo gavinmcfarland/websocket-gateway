@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import chalk from "chalk";
-import { ClientType, ClientMessage } from "./socket-helpers";
 
+type ClientType = "figma" | "dev-server" | "test";
 /**
  * Interface defining the methods available on a client
  * Extends Socket to include all socket.io methods
@@ -10,7 +10,7 @@ export interface SocketClient extends Omit<Socket, "emit"> {
 	emit: (
 		event: string,
 		data: any,
-		target?: ClientType[],
+		room?: ClientType[],
 		callback?: (response: any) => void
 	) => SocketClient;
 }
@@ -19,7 +19,7 @@ export interface SocketClient extends Omit<Socket, "emit"> {
  * Configuration options for creating a client
  */
 export interface ClientConfig {
-	source: string;
+	room: string;
 	port?: number;
 	host?: string;
 }
@@ -31,23 +31,23 @@ export interface ClientConfig {
  * @returns A proxied client instance with all Socket methods plus custom functionality
  */
 export function createClient(config: ClientConfig): SocketClient {
-	const { source, port = 8080, host = "localhost" } = config;
+	const { room, port = 8080, host = "localhost" } = config;
 
-	console.log(chalk.cyan(`\n⚡ Starting ${source} Client...\n`));
+	console.log(chalk.cyan(`\n⚡ Starting ${room} Client...\n`));
 
 	const socket = io(`http://${host}:${port}`, {
-		auth: { source },
+		auth: { room },
 	});
 
 	function emit(
 		event: string,
 		data: any,
-		target?: ClientType[],
+		room?: ClientType[],
 		callback?: (response: any) => void
 	): SocketClient {
-		if (target) {
-			target.forEach((type) => {
-				socket.emit(event, { ...data, target: type }, callback);
+		if (room) {
+			room.forEach((type) => {
+				socket.emit(event, { ...data, room: type }, callback);
 			});
 		} else {
 			socket.emit(event, data, callback);

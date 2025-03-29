@@ -67,52 +67,56 @@
 	</div>
 
 	<input type="text" id="messageInput" placeholder="Type a message">
-	<select id="targetType">
+	<select id="room">
 		<option value="browser">Browser</option>
 		<option value="figma">Figma</option>
 	</select>
 	<button onclick="sendMessage()">Send Message</button>
 
-	<script>
+	<script type="module">
+		// Import the client factory
+		import { createClient } from '../../dist/client-factory.js';
+
 		// Get client type from URL parameter (e.g., ?type=browser or ?type=figma)
 		const urlParams = new URLSearchParams(window.location.search);
-		const clientType = urlParams.get('type') || 'browser';
+		const room = urlParams.get('type') || 'browser';
 
 		// Update title based on client type
-		document.getElementById('clientTitle').textContent = `${clientType.charAt(0).toUpperCase() + clientType.slice(1)} Client`;
-		document.title = `${clientType.charAt(0).toUpperCase() + clientType.slice(1)} Client`;
+		document.getElementById('clientTitle').textContent = `${room.charAt(0).toUpperCase() + room.slice(1)} Client`;
+		document.title = `${room.charAt(0).toUpperCase() + room.slice(1)} Client`;
 
 		// Set default target type based on client type
-		const targetSelect = document.getElementById('targetType');
-		const options = targetSelect.options;
+		const roomSelect = document.getElementById('room');
+		const options = roomSelect.options;
 		for (let i = 0; i < options.length; i++) {
-			if (options[i].value !== clientType) {
+			if (options[i].value !== room) {
 				options[i].selected = true;
 				break;
 			}
 		}
 
-		const socket = io({
-			auth: { source: clientType }
+		const socket = createClient({
+			room,
+			port: 8080  // Hardcode port or get from environment
 		});
 
 		socket.on('connect', () => {
-			document.getElementById('clientId').textContent = `Connected as: ${socket.id}`;
+			document.getElementById('clientId').textContent = `Connected as: ${socket.id} in room: ${room}`;
 		});
 
-		// Add new event listener for file change notifications from dev server
-		if (clientType === 'figma') {
-			socket.on('MESSAGE_TO_TYPE', (data) => {
-				if (data.targetType === 'figma' && data.message.type === 'FILE_CHANGED') {
-					const changeData = data.message;
+		// Update to use consistent event names from tests
+		if (room === 'figma') {
+			socket.on('ANY_EVENT', (data) => {
+				if (data.content && data.content.type === 'FILE_CHANGED') {
+					const changeData = data.content;
 
-					// Forward the file change notification to the test server
-					socket.emit('MESSAGE_TO_TYPE', {
-						targetType: 'test-client',
-						message: JSON.stringify({
+					// Forward using consistent event name
+					socket.emit('ANY_EVENT', {
+						room: 'test',
+						content: {
 							type: 'FILE_CHANGE_COMPLETE',
 							data: changeData
-						})
+						}
 					});
 
 					// Add to sent messages display
@@ -120,7 +124,7 @@
 					const timestamp = new Date().toLocaleTimeString();
 					sentMessagesDiv.innerHTML += `
 						<div class="sent-message">
-							[${timestamp}] File change notification sent to browser: ${JSON.stringify(changeData)}
+							[${timestamp}] File change notification sent to test-client: ${JSON.stringify(changeData)}
 						</div>
 					`;
 					sentMessagesDiv.scrollTop = sentMessagesDiv.scrollHeight;
@@ -128,6 +132,7 @@
 			});
 		}
 
+		// Update room state listener to match test patterns
 		socket.on('ROOM_STATE', (rooms) => {
 			const roomsDiv = document.getElementById('rooms');
 			roomsDiv.innerHTML = '';
@@ -138,20 +143,21 @@
 				roomDiv.innerHTML = `
                     <h3>${roomName} (${members.length})</h3>
                     ${members.map(m => `
-                        <div class="member">${m.id} (${m.clientType})</div>
+                        <div class="member">${m.id} (${m.room})</div>
                     `).join('')}
                 `;
 				roomsDiv.appendChild(roomDiv);
 			});
 		});
 
-		socket.on('MESSAGE_FROM_TYPE', ({ fromType, message }) => {
+		// Update message handling to use ANY_EVENT
+		socket.on('ANY_EVENT', (data) => {
 			const receivedMessagesDiv = document.getElementById('receivedMessages');
 			const timestamp = new Date().toLocaleTimeString();
-			const messageText = typeof message === 'object' ? JSON.stringify(message) : message;
+			const messageText = typeof data.content === 'object' ? JSON.stringify(data.content) : data.content;
 			receivedMessagesDiv.innerHTML += `
                 <div class="received-message">
-                    [${timestamp}] From ${fromType}: ${messageText}
+                    [${timestamp}] From ${data.from || 'unknown'}: ${messageText}
                 </div>
             `;
 			receivedMessagesDiv.scrollTop = receivedMessagesDiv.scrollHeight;
@@ -159,7 +165,7 @@
 
 		function sendMessage() {
 			const message = document.getElementById('messageInput').value;
-			const targetType = document.getElementById('targetType').value;
+			const room = document.getElementById('room').value;
 
 			if (message) {
 				// Add message to sent messages
@@ -167,15 +173,15 @@
 				const timestamp = new Date().toLocaleTimeString();
 				sentMessagesDiv.innerHTML += `
                     <div class="sent-message">
-                        [${timestamp}] To ${targetType}: ${message}
+                        [${timestamp}] To ${room}: ${message}
                     </div>
                 `;
 				sentMessagesDiv.scrollTop = sentMessagesDiv.scrollHeight;
 
-				// Send the message as a string
-				socket.emit('MESSAGE_TO_TYPE', {
-					targetType,
-					message: message  // Make sure we're sending the string directly
+				// Send using ANY_EVENT format from tests
+				socket.emit('ANY_EVENT', {
+					room,
+					content: message
 				});
 				document.getElementById('messageInput').value = '';
 			}

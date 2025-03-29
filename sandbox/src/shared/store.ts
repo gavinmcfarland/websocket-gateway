@@ -1,6 +1,6 @@
 type Member = {
 	id: string;
-	clientType: string;
+	room: string;
 };
 
 type RoomState = {

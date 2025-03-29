@@ -9,5 +9,10 @@
         "outDir": "./dist",
         "rootDir": "./src"
     },
-    "include": ["src/**/*", "../src/ShutdownManager.ts"]
+    "include": [
+        "src/**/*",
+        "../src/ShutdownManager.ts",
+        "../src/client-factory.ts",
+        "../src/server-factory.ts"
+    ]
 }
