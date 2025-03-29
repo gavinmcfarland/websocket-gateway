@@ -2,13 +2,26 @@
     "name": "websocket-gateway",
     "version": "1.0.0",
     "description": "WebSocket Gateway",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
     "scripts": {
-        "dev": "tsc --watch",
+        "dev": "tsup --watch",
         "clean": "rm -rf dist",
-        "build": "npm run clean && tsc",
-        "test": "vitest"
+        "build": "tsup",
+        "test": "vitest",
+        "typecheck": "tsc --noEmit",
+        "start": "ts-node --esm src/index.ts"
     },
     "dependencies": {
         "chalk": "^5.4.1",
@@ -21,8 +34,9 @@
     "devDependencies": {
         "@types/ws": "^8.18.0",
         "@vitest/ui": "^3.0.9",
-        "typescript": "^5.3.3",
-        "vitest": "^3.0.9"
+        "typescript": "^5.0.0",
+        "vitest": "^3.0.9",
+        "tsup": "^8.0.2"
     },
     "type": "module"
 }

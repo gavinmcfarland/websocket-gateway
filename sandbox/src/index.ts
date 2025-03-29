@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import * as fs from "node:fs";
 import { dirname, join } from "node:path";
 import { roomStore } from "./shared/store";
-import { createServer as createSocketServer } from "../../dist/server-factory";
+import { createServer as createSocketServer } from "websocket-gateway";
 import { fileURLToPath } from "node:url";
 
 // Create HTTP server

@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "Sandbox environment for testing the websocket package",
     "private": true,
+    "type": "module",
     "scripts": {
         "start": "ts-node src/index.ts",
         "dev": "nodemon src/index.ts",
@@ -13,6 +14,7 @@
         "test-client": "ts-node src/start/start-test-client.ts"
     },
     "dependencies": {
+        "websocket-gateway": "file:..",
         "socket.io": "^4.7.4",
         "socket.io-client": "^4.7.4"
     },
