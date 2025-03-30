@@ -64,3 +64,5 @@ export class TestClient {
 		}, 1000);
 	}
 }
+
+new TestClient();

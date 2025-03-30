@@ -1,34 +1,108 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { createClient } from "websocket-gateway/client";
+	import type { Socket } from "socket.io-client";
+	import MessageList from "./components/MessageList.svelte";
+	import RoomList from "./components/RoomList.svelte";
+	import MessageInput from "./components/MessageInput.svelte";
+
+	interface Message {
+		timestamp: string;
+		content: string;
+		from?: string;
+		to?: string;
+	}
+
+	interface Room {
+		members: Array<{
+			id: string;
+			room: string;
+		}>;
+	}
+
+	interface Rooms {
+		[key: string]: Room["members"];
+	}
 
 	let clientId = "";
-	let rooms = {};
+	let rooms: Rooms = {};
 	let messageInput = "";
 	let selectedRoom = "browser";
-	let sentMessages: string[] = [];
-	let receivedMessages: string[] = [];
-	let socket: any;
+	let sentMessages: Message[] = [];
+	let receivedMessages: Message[] = [];
+	let socket: Socket;
 
 	// Get client type from URL parameter
 	const urlParams = new URLSearchParams(window.location.search);
 	const room = urlParams.get("type") || "browser";
 	const clientTitle = `${room.charAt(0).toUpperCase() + room.slice(1)} Client`;
 
-	function sendMessage() {
-		if (messageInput && socket) {
-			const timestamp = new Date().toLocaleTimeString();
+	function createMessage(
+		content: string,
+		to?: string,
+		from?: string,
+	): Message {
+		return {
+			timestamp: new Date().toLocaleTimeString(),
+			content,
+			to,
+			from,
+		};
+	}
+
+	function setupSocketListeners(socket: Socket) {
+		socket.on("connect", () => {
+			clientId = `Connected as: ${socket.id} in room: ${room}`;
+		});
+
+		socket.on("FILE_CHANGED", (data) => {
+			const changeData = data.content;
+			socket.emit("FILE_CHANGE_COMPLETE", {
+				room: "test",
+				data: changeData,
+			});
+
 			sentMessages = [
 				...sentMessages,
-				`[${timestamp}] To ${selectedRoom}: ${messageInput}`,
+				createMessage(
+					`File change notification sent to test-client: ${JSON.stringify(changeData)}`,
+					"test",
+				),
 			];
+		});
 
-			socket.emit("SEND_MESSAGE", {
-				room: selectedRoom,
-				content: messageInput,
-			});
-			messageInput = "";
-		}
+		socket.on("ROOM_STATE", (newRooms: Rooms) => {
+			rooms = newRooms;
+			console.log("Rooms:", rooms);
+		});
+
+		socket.on("SEND_MESSAGE", (data) => {
+			const messageText =
+				typeof data.content === "object"
+					? JSON.stringify(data.content)
+					: data.content;
+
+			receivedMessages = [
+				...receivedMessages,
+				createMessage(messageText, undefined, data.from),
+			];
+		});
+	}
+
+	function sendMessage() {
+		if (!messageInput || !socket) return;
+
+		sentMessages = [
+			...sentMessages,
+			createMessage(messageInput, selectedRoom),
+		];
+
+		socket.emit("SEND_MESSAGE", {
+			room: selectedRoom,
+			content: messageInput,
+		});
+
+		messageInput = "";
 	}
 
 	onMount(() => {
@@ -37,53 +111,7 @@
 			port: 8080,
 		});
 
-		socket.on("connect", () => {
-			clientId = `Connected as: ${socket.id} in room: ${room}`;
-		});
-
-		// if (room === "figma") {
-		socket.on("FILE_CHANGED", (data) => {
-			const changeData = data.content;
-
-			socket.emit("FILE_CHANGE_COMPLETE", {
-				room: "test",
-				data: changeData,
-			});
-
-			const timestamp = new Date().toLocaleTimeString();
-			sentMessages = [
-				...sentMessages,
-				`[${timestamp}] File change notification sent to test-client: ${JSON.stringify(changeData)}`,
-			];
-		});
-		// }
-
-		socket.on("ROOM_STATE", (newRooms) => {
-			rooms = newRooms;
-			console.log("Rooms:", rooms);
-		});
-
-		socket.on("SEND_MESSAGE", (data) => {
-			const timestamp = new Date().toLocaleTimeString();
-			const messageText =
-				typeof data.content === "object"
-					? JSON.stringify(data.content)
-					: data.content;
-			receivedMessages = [
-				...receivedMessages,
-				`[${timestamp}] From ${data.from || "unknown"}: ${messageText}`,
-			];
-		});
-
-		// Add keyboard event listener
-		const messageInputEl = document.getElementById("messageInput");
-		if (messageInputEl) {
-			messageInputEl.addEventListener("keypress", (e) => {
-				if (e.key === "Enter") {
-					sendMessage();
-				}
-			});
-		}
+		setupSocketListeners(socket);
 	});
 </script>
 
@@ -92,80 +120,27 @@
 	<div>{clientId}</div>
 
 	<h2>Connected Clients</h2>
-	<div id="rooms">
-		{#each Object.entries(rooms) as [roomName, members]}
-			<div class="room">
-				<h3>{roomName} ({members.length})</h3>
-				{#each members as member}
-					<div class="member">{member.id} ({member.room})</div>
-				{/each}
-			</div>
-		{/each}
-	</div>
+	<RoomList {rooms} />
 
 	<div class="message-containers">
-		<div class="message-section">
-			<h2>Sent Messages</h2>
-			<div class="message-box">
-				{#each sentMessages as message}
-					<div class="sent-message">{message}</div>
-				{/each}
-			</div>
-		</div>
-		<div class="message-section">
-			<h2>Received Messages</h2>
-			<div class="message-box">
-				{#each receivedMessages as message}
-					<div class="received-message">{message}</div>
-				{/each}
-			</div>
-		</div>
+		<MessageList
+			title="Sent Messages"
+			messages={sentMessages}
+			messageClass="sent-message"
+		/>
+		<MessageList
+			title="Received Messages"
+			messages={receivedMessages}
+			messageClass="received-message"
+		/>
 	</div>
 
-	<input
-		type="text"
-		id="messageInput"
-		placeholder="Type a message"
-		bind:value={messageInput}
-	/>
-	<select bind:value={selectedRoom}>
-		<option value="browser">Browser</option>
-		<option value="figma">Figma</option>
-	</select>
-	<button on:click={() => sendMessage()}>Send Message</button>
+	<MessageInput bind:value={messageInput} bind:selectedRoom {sendMessage} />
 </main>
 
 <style>
-	.room {
-		margin-bottom: 20px;
-	}
-
-	.member {
-		margin: 5px 0;
-	}
-
 	.message-containers {
 		display: flex;
 		gap: 20px;
-	}
-
-	.message-section {
-		flex: 1;
-	}
-
-	.message-box {
-		height: 200px;
-		overflow-y: auto;
-		border: 1px solid #ccc;
-		padding: 10px;
-		margin: 10px 0;
-	}
-
-	.sent-message {
-		color: #0066cc;
-	}
-
-	.received-message {
-		color: #006600;
 	}
 </style>
