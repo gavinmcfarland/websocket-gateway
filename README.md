@@ -1,4 +1,4 @@
-# Web Socket Documentation
+# Experimenting with socket.io and Figma plugins
 
 Experimenting with a Socket.IO gateway for cross-client communication.
 
