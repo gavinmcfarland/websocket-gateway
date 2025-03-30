@@ -136,11 +136,11 @@ export function createSocketServer(config: ServerConfig): SocketServer {
 	// Create a proxy that forwards all methods from the server
 	// while preserving our custom methods
 	const proxy = new Proxy<SocketServer>(io as unknown as SocketServer, {
-		get(target, prop, receiver) {
+		get(room, prop, receiver) {
 			// if (prop === "emit") {
 			// 	return emit;
 			// }
-			return Reflect.get(target, prop, receiver);
+			return Reflect.get(room, prop, receiver);
 		},
 	});
 
