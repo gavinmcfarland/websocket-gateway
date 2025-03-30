@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 import chalk from "chalk";
-import { createClient } from "../../../src/client.js";
+import { createClient } from "websocket-gateway/client";
 
 class ConnectionMonitor {
 	constructor() {

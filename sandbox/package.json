@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"tsx src/node/server.ts\" \"vite\"",
+        "dev": "concurrently \"tsx src/node/websocket-server.ts\" \"vite\"",
         "build": "vite build",
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.json",

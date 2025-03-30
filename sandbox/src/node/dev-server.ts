@@ -1,6 +1,5 @@
-import { timeStamp } from "node:console";
-import { createClient } from "../../../src/client.js";
-import type { SocketClient } from "../../../src/client.js";
+import { createClient } from "websocket-gateway/client";
+
 import { watch } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -9,7 +8,7 @@ import chalk from "chalk";
  * Watches for file changes in the specified directory and notifies connected Figma clients
  * @param client The Socket client instance used to broadcast messages
  */
-function watchForFileChanges(client: SocketClient) {
+function watchForFileChanges(client) {
 	// Mock directory to watch - adjust this path as needed
 	const watchDir = join(process.cwd());
 

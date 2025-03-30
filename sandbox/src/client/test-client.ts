@@ -1,12 +1,12 @@
-import { io } from "socket.io-client";
+import { createClient } from "websocket-gateway/client";
 import chalk from "chalk";
 
 /**
  * Client class for testing connections to the development server
  */
 export class TestClient {
-	private socket = io("http://localhost:8080", {
-		auth: { clientType: "test" },
+	private socket = createClient({
+		room: "test",
 	});
 
 	constructor() {

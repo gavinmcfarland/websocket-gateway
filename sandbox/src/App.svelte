@@ -23,7 +23,7 @@
 				`[${timestamp}] To ${selectedRoom}: ${messageInput}`,
 			];
 
-			socket.emit("ANY_EVENT", {
+			socket.emit("SEND_MESSAGE", {
 				room: selectedRoom,
 				content: messageInput,
 			});
@@ -63,7 +63,7 @@
 			console.log("Rooms:", rooms);
 		});
 
-		socket.on("ANY_EVENT", (data) => {
+		socket.on("SEND_MESSAGE", (data) => {
 			const timestamp = new Date().toLocaleTimeString();
 			const messageText =
 				typeof data.content === "object"

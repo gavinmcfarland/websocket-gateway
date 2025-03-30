@@ -1,6 +1,6 @@
 import { roomStore } from "../shared/store.js";
 import { createSocketServer } from "websocket-gateway/server";
-import { httpServer } from "./http-server";
+import { httpServer } from "./http-server.js";
 
 const PORT = process.env.PORT || 8080;
 
