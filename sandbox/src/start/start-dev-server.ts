@@ -1,6 +1,6 @@
 import { timeStamp } from "node:console";
-import { createClient } from "../../../src/client-factory";
-import type { SocketClient } from "../../../src/client-factory";
+import { createClient } from "../../../src/client.js";
+import type { SocketClient } from "../../../src/client.js";
 import { watch } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";

@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { createServer as createHttpServer } from "node:http";
 import chalk from "chalk";
-import { createClient } from "../src/client-factory";
-import { createServer } from "../src/server-factory";
-import type { SocketServer } from "../src/server-factory";
+import { createClient } from "../src/client";
+import { createServer } from "../src/server";
+import type { SocketServer } from "../src/server";
 
 const log = {
 	server: (...args: any[]) =>

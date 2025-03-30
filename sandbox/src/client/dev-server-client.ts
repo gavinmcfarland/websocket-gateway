@@ -1,4 +1,4 @@
-import { createClient, SocketClient } from "../../../src/client-factory";
+import { createClient, SocketClient } from "../../../src/client.js";
 import { ClientType, ClientMessage } from "./utils/socket-helpers";
 import { createInterface } from "node:readline";
 import chalk from "chalk";

@@ -2,23 +2,25 @@
     "name": "websocket-gateway",
     "version": "1.0.0",
     "description": "WebSocket Gateway",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
+    "main": "./dist/server.js",
+    "browser": "./dist/client.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs"
-        }
+            "browser": "./dist/client.js",
+            "node": "./dist/server.js",
+            "default": "./dist/client.js"
+        },
+        "./server": "./dist/server.js",
+        "./client": "./dist/client.js"
     },
     "files": [
         "dist"
     ],
     "scripts": {
-        "dev": "tsup --watch",
+        "build": "tsup src/client.ts src/server.ts --format esm --dts",
+        "dev": "tsup src/client.ts src/server.ts --format esm --dts --watch",
         "clean": "rm -rf dist",
-        "build": "tsup",
         "test": "vitest",
         "typecheck": "tsc --noEmit",
         "start": "ts-node --esm src/index.ts"

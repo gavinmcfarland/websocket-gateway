@@ -75,7 +75,7 @@
 
 	<script type="module">
 		// Import the client factory
-		import { createClient } from '../../dist/client-factory.js';
+		import { createClient } from 'websocket-gateway';
 
 		// Get client type from URL parameter (e.g., ?type=browser or ?type=figma)
 		const urlParams = new URLSearchParams(window.location.search);
@@ -101,6 +101,7 @@
 		});
 
 		socket.on('connect', () => {
+			console.log('Connected as:', socket.id);
 			document.getElementById('clientId').textContent = `Connected as: ${socket.id} in room: ${room}`;
 		});
 

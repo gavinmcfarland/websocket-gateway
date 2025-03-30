@@ -1,27 +1,28 @@
 {
-    "name": "websocket-package-sandbox",
-    "version": "1.0.0",
-    "description": "Sandbox environment for testing the websocket package",
+    "name": "sandbox",
     "private": true,
+    "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "start": "ts-node src/index.ts",
-        "dev": "nodemon src/index.ts",
-        "kill-port": "lsof -ti :${PORT:-8080} | xargs kill -9 || true",
-        "kill-port:win": "FOR /F \"tokens=5\" %P IN ('netstat -a -n -o ^| findstr :%PORT%') DO TaskKill /PID %P /F",
-        "monitor": "ts-node src/cli/monitor.ts",
-        "dev-server-client": "ts-node src/start/start-dev-server.ts",
-        "test-client": "ts-node src/start/start-test-client.ts"
-    },
-    "dependencies": {
-        "websocket-gateway": "file:..",
-        "socket.io": "^4.7.4",
-        "socket.io-client": "^4.7.4"
+        "dev": "concurrently \"tsx src/index.ts\" \"vite\"",
+        "build": "vite build",
+        "preview": "vite preview",
+        "check": "svelte-check --tsconfig ./tsconfig.json",
+        "monitor": "tsx watch src/cli/monitor.ts"
     },
     "devDependencies": {
-        "chalk": "^4.1.2",
-        "nodemon": "^3.0.3",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.3.3"
+        "@sveltejs/vite-plugin-svelte": "^3.0.0",
+        "@tsconfig/svelte": "^5.0.0",
+        "concurrently": "^8.2.0",
+        "svelte": "^4.0.0",
+        "svelte-check": "^3.4.3",
+        "svelte-preprocess": "^5.0.0",
+        "tslib": "^2.4.1",
+        "typescript": "^5.0.0",
+        "vite": "^5.0.0"
+    },
+    "dependencies": {
+        "tsx": "^4.19.3",
+        "websocket-gateway": "file:.."
     }
 }

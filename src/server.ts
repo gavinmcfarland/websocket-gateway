@@ -32,7 +32,7 @@ export interface ServerConfig {
  * @param config - Configuration options for the server
  * @returns A proxied Socket.IO server instance with custom functionality
  */
-export function createServer(config: ServerConfig): SocketServer {
+export function createSocketServer(config: ServerConfig): SocketServer {
 	const { httpServer, cors, serverOptions = {} } = config;
 
 	console.log(chalk.cyan(`\n⚡ Initializing Socket.IO Server...\n`));
