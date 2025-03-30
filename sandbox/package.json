@@ -4,11 +4,13 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "concurrently \"tsx src/index.ts\" \"vite\"",
+        "dev": "concurrently \"tsx src/node/server.ts\" \"vite\"",
         "build": "vite build",
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.json",
-        "monitor": "tsx watch src/cli/monitor.ts"
+        "monitor": "tsx watch src/cli/monitor.ts",
+        "dev-server-client": "tsx src/node/dev-server.ts",
+        "test-client": "tsx src/node/test-client.ts"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^3.0.0",

@@ -38,34 +38,29 @@
 		});
 
 		socket.on("connect", () => {
-			console.log("Connected as:", socket.id);
 			clientId = `Connected as: ${socket.id} in room: ${room}`;
 		});
 
-		if (room === "figma") {
-			socket.on("ANY_EVENT", (data) => {
-				if (data.content?.type === "FILE_CHANGED") {
-					const changeData = data.content;
+		// if (room === "figma") {
+		socket.on("FILE_CHANGED", (data) => {
+			const changeData = data.content;
 
-					socket.emit("ANY_EVENT", {
-						room: "test",
-						content: {
-							type: "FILE_CHANGE_COMPLETE",
-							data: changeData,
-						},
-					});
-
-					const timestamp = new Date().toLocaleTimeString();
-					sentMessages = [
-						...sentMessages,
-						`[${timestamp}] File change notification sent to test-client: ${JSON.stringify(changeData)}`,
-					];
-				}
+			socket.emit("FILE_CHANGE_COMPLETE", {
+				room: "test",
+				data: changeData,
 			});
-		}
+
+			const timestamp = new Date().toLocaleTimeString();
+			sentMessages = [
+				...sentMessages,
+				`[${timestamp}] File change notification sent to test-client: ${JSON.stringify(changeData)}`,
+			];
+		});
+		// }
 
 		socket.on("ROOM_STATE", (newRooms) => {
 			rooms = newRooms;
+			console.log("Rooms:", rooms);
 		});
 
 		socket.on("ANY_EVENT", (data) => {

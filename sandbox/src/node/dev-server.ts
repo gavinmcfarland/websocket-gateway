@@ -16,24 +16,25 @@ function watchForFileChanges(client: SocketClient) {
 	console.log(chalk.green("✓"), chalk.dim(`Watching directory: ${watchDir}`));
 
 	watch(watchDir, { recursive: true }, (eventType, filename) => {
+		console.log(chalk.green("✓"), chalk.dim(`File changed: ${filename}`));
 		if (filename) {
-			// Send message to all connected Figma clients
-			client.emit(
-				"FILE_CHANGED",
-				{
-					timeStamp: new Date().toISOString(),
-					file: filename,
-					event: eventType,
-				},
-				["figma"]
+			const payload = {
+				timeStamp: new Date().toISOString(),
+				file: filename,
+				event: eventType,
+				room: "figma",
+			};
+			console.log(
+				chalk.blue("→"),
+				chalk.dim(`Emitting FILE_CHANGED:`, payload)
 			);
+			client.emit("FILE_CHANGED", payload);
 		}
 	});
 }
 
-// Initialize the client using the factory
 const devServer = createClient({
-	source: "dev-server",
+	room: "dev-server",
 });
 
 // Start watching for file changes
