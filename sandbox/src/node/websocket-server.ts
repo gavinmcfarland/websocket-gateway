@@ -41,8 +41,7 @@ io.on("connection", (socket) => {
 	io.emit("ROOM_STATE", rooms);
 });
 
-httpServer.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
-	console.log(`Figma client: http://localhost:${PORT}/?type=figma`);
-	console.log(`Browser client: http://localhost:${PORT}/?type=browser`);
-});
+httpServer.listen(PORT);
+
+console.log(`Figma client: http://localhost:5173/?type=figma`);
+console.log(`Browser client: http://localhost:5173/?type=browser`);
